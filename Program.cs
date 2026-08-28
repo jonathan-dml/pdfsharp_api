@@ -187,6 +187,61 @@ app.MapPost("/extract", async (IFormFile file, [FromForm] int[] selectedPages) =
 })
 .DisableAntiforgery();
 
+app.MapPost("/delete", async (IFormFile file, [FromForm] int[] selectedPages) =>
+{
+    if (file is null || file.Length == 0)
+    {
+        return Results.BadRequest("A non-empty PDF file is required.");
+    }
+
+    if (selectedPages is null || selectedPages.Length == 0)
+    {
+        return Results.BadRequest("At least one page number must be selected for deletion.");
+    }
+
+    if (selectedPages.Any(page => page < 1) || selectedPages.Distinct().Count() != selectedPages.Length)
+    {
+        return Results.BadRequest("selectedPages must contain positive, unique page numbers.");
+    }
+
+    try
+    {
+        await using var fileStream = file.OpenReadStream();
+        using var sourceDocument = PdfReader.Open(fileStream, PdfDocumentOpenMode.Import);
+
+        if (selectedPages.Any(page => page > sourceDocument.PageCount))
+        {
+            return Results.BadRequest($"selectedPages must contain page numbers from 1 to {sourceDocument.PageCount}.");
+        }
+
+        var pagesToKeep = Enumerable.Range(1, sourceDocument.PageCount)
+            .Except(selectedPages)
+            .ToArray();
+
+        if (pagesToKeep.Length == 0)
+        {
+            return Results.BadRequest("At least one page must remain in the resulting PDF.");
+        }
+
+        using var resultDocument = new PdfDocument();
+
+        foreach (var pageNumber in pagesToKeep)
+        {
+            resultDocument.AddPage(sourceDocument.Pages[pageNumber - 1]);
+        }
+
+        await using var outputStream = new MemoryStream();
+        resultDocument.Save(outputStream, false);
+
+        return Results.File(outputStream.ToArray(), "application/pdf", "deleted-pages-removed.pdf");
+    }
+    catch (Exception exception) when (exception is InvalidOperationException or PdfReaderException)
+    {
+        return Results.BadRequest("The file must be a valid PDF document.");
+    }
+})
+.DisableAntiforgery();
+
 
 
 
