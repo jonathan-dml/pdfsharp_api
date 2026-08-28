@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("pdfsharp_api")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+459e9646c1b817960c1ecc91fc839f6fb2235ea7")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+873ca374aa2b6a845cc2851706207c3b2de851c1")]
 [assembly: System.Reflection.AssemblyProductAttribute("pdfsharp_api")]
 [assembly: System.Reflection.AssemblyTitleAttribute("pdfsharp_api")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

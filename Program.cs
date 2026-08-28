@@ -387,6 +387,61 @@ app.MapPost("/reorder", async (IFormFile file, [FromForm] string newOrder) =>
 })
 .DisableAntiforgery();
 
+app.MapPost("/copy", async (
+    IFormFile fileToCopy,
+    IFormFile targetFile,
+    [FromForm] int[] selectedPages) =>
+{
+    if (fileToCopy is null || fileToCopy.Length == 0)
+    {
+        return Results.BadRequest("A non-empty source PDF file is required.");
+    }
+
+    if (targetFile is null || targetFile.Length == 0)
+    {
+        return Results.BadRequest("A non-empty target PDF file is required.");
+    }
+
+    if (selectedPages is null || selectedPages.Length == 0)
+    {
+        return Results.BadRequest("At least one page number must be selected.");
+    }
+
+    if (selectedPages.Any(page => page < 1) || selectedPages.Distinct().Count() != selectedPages.Length)
+    {
+        return Results.BadRequest("selectedPages must contain positive, unique page numbers.");
+    }
+
+    try
+    {
+        await using var sourceStream = fileToCopy.OpenReadStream();
+        using var sourceDocument = PdfReader.Open(sourceStream, PdfDocumentOpenMode.Import);
+
+        if (selectedPages.Any(page => page > sourceDocument.PageCount))
+        {
+            return Results.BadRequest($"selectedPages must contain page numbers from 1 to {sourceDocument.PageCount}.");
+        }
+
+        await using var targetStream = targetFile.OpenReadStream();
+        using var targetDocument = PdfReader.Open(targetStream, PdfDocumentOpenMode.Modify);
+
+        foreach (var pageNumber in selectedPages)
+        {
+            targetDocument.AddPage(sourceDocument.Pages[pageNumber - 1]);
+        }
+
+        await using var outputStream = new MemoryStream();
+        targetDocument.Save(outputStream, false);
+
+        return Results.File(outputStream.ToArray(), "application/pdf", "copied-pages.pdf");
+    }
+    catch (Exception exception) when (exception is InvalidOperationException or PdfReaderException)
+    {
+        return Results.BadRequest("Both files must be valid PDF documents.");
+    }
+})
+.DisableAntiforgery();
+
 
 
 
