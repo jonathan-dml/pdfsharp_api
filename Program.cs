@@ -315,6 +315,78 @@ app.MapPost("/rotate", async (IFormFile file, [FromForm] string rotationAngles) 
 })
 .DisableAntiforgery();
 
+app.MapPost("/reorder", async (IFormFile file, [FromForm] string newOrder) =>
+{
+    if (file is null || file.Length == 0)
+    {
+        return Results.BadRequest("A non-empty PDF file is required.");
+    }
+
+    if (string.IsNullOrWhiteSpace(newOrder))
+    {
+        return Results.BadRequest("The newOrder dictionary is required as a JSON object.");
+    }
+
+    Dictionary<int, int>? pageOrder;
+    try
+    {
+        pageOrder = JsonSerializer.Deserialize<Dictionary<int, int>>(newOrder);
+    }
+    catch (JsonException)
+    {
+        return Results.BadRequest("newOrder must be a valid JSON object with old page numbers as keys.");
+    }
+
+    if (pageOrder is null || pageOrder.Count == 0)
+    {
+        return Results.BadRequest("newOrder must contain at least one page mapping.");
+    }
+
+    if (pageOrder.Keys.Any(page => page < 1) || pageOrder.Values.Any(position => position < 1))
+    {
+        return Results.BadRequest("newOrder must contain positive page numbers.");
+    }
+
+    if (pageOrder.Values.Distinct().Count() != pageOrder.Count)
+    {
+        return Results.BadRequest("Each new page number must be unique.");
+    }
+
+    try
+    {
+        await using var fileStream = file.OpenReadStream();
+        using var sourceDocument = PdfReader.Open(fileStream, PdfDocumentOpenMode.Import);
+
+        var pageCount = sourceDocument.PageCount;
+        var expectedPageNumbers = Enumerable.Range(1, pageCount).ToHashSet();
+
+        if (!pageOrder.Keys.ToHashSet().SetEquals(expectedPageNumbers) ||
+            !pageOrder.Values.ToHashSet().SetEquals(expectedPageNumbers))
+        {
+            return Results.BadRequest($"newOrder must map every page from 1 to {pageCount} to a unique position in the same range.");
+        }
+
+        using var reorderedDocument = new PdfDocument();
+
+        foreach (var oldPageNumber in pageOrder
+            .OrderBy(page => page.Value)
+            .Select(page => page.Key))
+        {
+            reorderedDocument.AddPage(sourceDocument.Pages[oldPageNumber - 1]);
+        }
+
+        await using var outputStream = new MemoryStream();
+        reorderedDocument.Save(outputStream, false);
+
+        return Results.File(outputStream.ToArray(), "application/pdf", "reordered.pdf");
+    }
+    catch (Exception exception) when (exception is InvalidOperationException or PdfReaderException)
+    {
+        return Results.BadRequest("The file must be a valid PDF document.");
+    }
+})
+.DisableAntiforgery();
+
 
 
 
