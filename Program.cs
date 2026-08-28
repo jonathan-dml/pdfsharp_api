@@ -10,7 +10,9 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("ReactClient", policy =>
     {
-        policy.WithOrigins("http://localhost:5173") // Vite's default dev port
+        policy.WithOrigins(
+                  "http://localhost:5173", // Vite's default dev port
+                  "https://green-sky-052853c10.7.azurestaticapps.net")
               .AllowAnyHeader()
               .AllowAnyMethod();
     });
