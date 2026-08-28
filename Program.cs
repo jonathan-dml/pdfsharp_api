@@ -6,12 +6,20 @@ using System.Text.Json;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
-// Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("ReactClient", policy =>
+    {
+        policy.WithOrigins("http://localhost:5173") // Vite's default dev port
+              .AllowAnyHeader()
+              .AllowAnyMethod();
+    });
+});
 builder.Services.AddOpenApi();
 builder.Services.AddAntiforgery();
 
 var app = builder.Build();
+app.UseCors("ReactClient");
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
