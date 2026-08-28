@@ -242,6 +242,79 @@ app.MapPost("/delete", async (IFormFile file, [FromForm] int[] selectedPages) =>
 })
 .DisableAntiforgery();
 
+app.MapPost("/rotate", async (IFormFile file, [FromForm] string rotationAngles) =>
+{
+    if (file is null || file.Length == 0)
+    {
+        return Results.BadRequest("A non-empty PDF file is required.");
+    }
+
+    if (string.IsNullOrWhiteSpace(rotationAngles))
+    {
+        return Results.BadRequest("The rotationAngles dictionary is required as a JSON object.");
+    }
+
+    Dictionary<int, int>? rotations;
+    try
+    {
+        rotations = JsonSerializer.Deserialize<Dictionary<int, int>>(rotationAngles);
+    }
+    catch (JsonException)
+    {
+        return Results.BadRequest("rotationAngles must be a valid JSON object with page numbers as keys.");
+    }
+
+    if (rotations is null || rotations.Count == 0)
+    {
+        return Results.BadRequest("rotationAngles must contain at least one page rotation.");
+    }
+
+    if (rotations.Keys.Any(page => page < 1))
+    {
+        return Results.BadRequest("rotationAngles must contain positive page numbers.");
+    }
+
+    if (rotations.Values.Any(angle => angle is not (0 or 90 or 180 or 270)))
+    {
+        return Results.BadRequest("Rotation angles must be 0, 90, 180, or 270 degrees.");
+    }
+
+    try
+    {
+        await using var fileStream = file.OpenReadStream();
+        using var sourceDocument = PdfReader.Open(fileStream, PdfDocumentOpenMode.Import);
+
+        if (rotations.Keys.Any(page => page > sourceDocument.PageCount))
+        {
+            return Results.BadRequest($"rotationAngles must contain page numbers from 1 to {sourceDocument.PageCount}.");
+        }
+
+        using var rotatedDocument = new PdfDocument();
+
+        for (var pageNumber = 1; pageNumber <= sourceDocument.PageCount; pageNumber++)
+        {
+            var page = sourceDocument.Pages[pageNumber - 1];
+
+            if (rotations.TryGetValue(pageNumber, out var rotationAngle))
+            {
+                page.Rotate = rotationAngle;
+            }
+
+            rotatedDocument.AddPage(page);
+        }
+
+        await using var outputStream = new MemoryStream();
+        rotatedDocument.Save(outputStream, false);
+
+        return Results.File(outputStream.ToArray(), "application/pdf", "rotated.pdf");
+    }
+    catch (Exception exception) when (exception is InvalidOperationException or PdfReaderException)
+    {
+        return Results.BadRequest("The file must be a valid PDF document.");
+    }
+})
+.DisableAntiforgery();
+
 
 
 
