@@ -1,5 +1,5 @@
 {
-  "version": 3,
+  "version": 4,
   "targets": {
     "net10.0": {
       "Microsoft.AspNetCore.OpenApi/10.0.11": {
@@ -230,29 +230,36 @@
     ]
   },
   "packageFolders": {
-    "/home/jonathan/.nuget/packages/": {}
+    "C:\\Users\\jdlop\\.nuget\\packages\\": {},
+    "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages": {}
   },
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "/home/jonathan/Workspace/Portfolio Projects/pdfsharp_api/pdfsharp_api.csproj",
+      "projectUniqueName": "C:\\Workspace\\Portfolio Projects\\pdfsharp_api\\pdfsharp_api.csproj",
       "projectName": "pdfsharp_api",
-      "projectPath": "/home/jonathan/Workspace/Portfolio Projects/pdfsharp_api/pdfsharp_api.csproj",
-      "packagesPath": "/home/jonathan/.nuget/packages/",
-      "outputPath": "/home/jonathan/Workspace/Portfolio Projects/pdfsharp_api/obj/",
+      "projectPath": "C:\\Workspace\\Portfolio Projects\\pdfsharp_api\\pdfsharp_api.csproj",
+      "packagesPath": "C:\\Users\\jdlop\\.nuget\\packages\\",
+      "outputPath": "C:\\Workspace\\Portfolio Projects\\pdfsharp_api\\obj\\",
       "projectStyle": "PackageReference",
+      "fallbackFolders": [
+        "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
+      ],
       "configFilePaths": [
-        "/home/jonathan/.nuget/NuGet/NuGet.Config"
+        "C:\\Users\\jdlop\\AppData\\Roaming\\NuGet\\NuGet.Config",
+        "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
+        "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
       ],
       "originalTargetFrameworks": [
         "net10.0"
       ],
       "sources": {
-        "/usr/lib/dotnet/library-packs": {},
+        "C:\\Program Files (x86)\\Microsoft SDKs\\NuGetPackages\\": {},
         "https://api.nuget.org/v3/index.json": {}
       },
       "frameworks": {
         "net10.0": {
+          "framework": "net10.0",
           "targetAlias": "net10.0",
           "projectReferences": {}
         }
@@ -267,10 +274,11 @@
         "auditLevel": "low",
         "auditMode": "all"
       },
-      "SdkAnalysisLevel": "10.0.100"
+      "SdkAnalysisLevel": "10.0.300"
     },
     "frameworks": {
       "net10.0": {
+        "framework": "net10.0",
         "targetAlias": "net10.0",
         "dependencies": {
           "Microsoft.AspNetCore.OpenApi": {
@@ -301,7 +309,7 @@
             "privateAssets": "all"
           }
         },
-        "runtimeIdentifierGraphPath": "/usr/lib/dotnet/sdk/10.0.111/PortableRuntimeIdentifierGraph.json",
+        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\10.0.302/PortableRuntimeIdentifierGraph.json",
         "packagesToPrune": {
           "Microsoft.AspNetCore": "(,10.0.32767]",
           "Microsoft.AspNetCore.Antiforgery": "(,10.0.32767]",

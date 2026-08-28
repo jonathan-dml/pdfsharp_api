@@ -1,5 +1,7 @@
 using PdfSharpCore.Pdf;
 using PdfSharpCore.Pdf.IO;
+using System.IO.Compression;
+using System.Text.Json;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -57,6 +59,88 @@ app.MapPost("/merge", async (IFormFile file1, IFormFile file2) =>
     }
 })
 .DisableAntiforgery();
+
+app.MapPost("/split", async (HttpRequest request) =>
+{
+    if (!request.HasFormContentType)
+    {
+        return Results.BadRequest("The request must use multipart/form-data.");
+    }
+
+    var form = await request.ReadFormAsync();
+    var file = form.Files.GetFile("file");
+    var pageGroupsJson = form["pageGroups"].ToString();
+
+    if (file is null || file.Length == 0)
+    {
+        return Results.BadRequest("A non-empty PDF file is required.");
+    }
+
+    if (string.IsNullOrWhiteSpace(pageGroupsJson))
+    {
+        return Results.BadRequest("The pageGroups dictionary is required as a JSON object.");
+    }
+
+    Dictionary<int, int>? pageGroups;
+    try
+    {
+        pageGroups = JsonSerializer.Deserialize<Dictionary<int, int>>(pageGroupsJson);
+    }
+    catch (JsonException)
+    {
+        return Results.BadRequest("pageGroups must be a valid JSON object with page numbers as keys.");
+    }
+
+    if (pageGroups is null || pageGroups.Count == 0 || pageGroups.Keys.Any(page => page < 1) || pageGroups.Values.Any(group => group < 1))
+    {
+        return Results.BadRequest("pageGroups must contain positive page numbers and group numbers.");
+    }
+
+    try
+    {
+        await using var fileStream = file.OpenReadStream();
+        using var sourceDocument = PdfReader.Open(fileStream, PdfDocumentOpenMode.Import);
+
+        if (pageGroups.Count != sourceDocument.PageCount || pageGroups.Keys.Any(page => page > sourceDocument.PageCount))
+        {
+            return Results.BadRequest("pageGroups must assign every page in the PDF exactly once.");
+        }
+
+        using var zipStream = new MemoryStream();
+        using (var archive = new ZipArchive(zipStream, ZipArchiveMode.Create, true))
+        {
+            foreach (var group in pageGroups.Values.Distinct().Order())
+            {
+                var entry = archive.CreateEntry($"group-{group}.pdf", CompressionLevel.Fastest);
+                using var groupDocument = new PdfDocument();
+
+                foreach (var pageNumber in pageGroups
+                    .Where(page => page.Value == group)
+                    .Select(page => page.Key)
+                    .Order())
+                {
+                    groupDocument.AddPage(sourceDocument.Pages[pageNumber - 1]);
+                }
+
+                using var groupStream = new MemoryStream();
+                groupDocument.Save(groupStream, false);
+                groupStream.Position = 0;
+
+                await using var entryStream = entry.Open();
+                await groupStream.CopyToAsync(entryStream);
+            }
+        }
+
+        return Results.File(zipStream.ToArray(), "application/zip", "split-pdfs.zip");
+    }
+    catch (Exception exception) when (exception is InvalidOperationException or PdfReaderException)
+    {
+        return Results.BadRequest("The file must be a valid PDF document.");
+    }
+})
+.DisableAntiforgery();
+
+
 
 
 
